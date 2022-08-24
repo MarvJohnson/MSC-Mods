@@ -1,0 +1,8 @@
+C:\Users\marve\source\repos\MSC Mods\Configurable Volume\bin\Debug\ConfigurableSoundVolume.dll
+C:\Users\marve\source\repos\MSC Mods\Configurable Volume\bin\Debug\ConfigurableSoundVolume.pdb
+C:\Users\marve\source\repos\MSC Mods\Configurable Volume\bin\Debug\PlayMaker.dll
+C:\Users\marve\source\repos\MSC Mods\Configurable Volume\obj\Debug\Configurable Sound Volume.csproj.AssemblyReference.cache
+C:\Users\marve\source\repos\MSC Mods\Configurable Volume\obj\Debug\Configurable Sound Volume.csproj.CoreCompileInputs.cache
+C:\Users\marve\source\repos\MSC Mods\Configurable Volume\obj\Debug\Configurable Sound Volume.csproj.CopyComplete
+C:\Users\marve\source\repos\MSC Mods\Configurable Volume\obj\Debug\ConfigurableSoundVolume.dll
+C:\Users\marve\source\repos\MSC Mods\Configurable Volume\obj\Debug\ConfigurableSoundVolume.pdb

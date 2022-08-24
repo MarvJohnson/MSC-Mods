@@ -8,13 +8,13 @@ using UnityEngine.Events;
 
 namespace Menthus15Mods.Just_Wait
 {
-    public class JustWait : Mod
+    public class Just_Wait : Mod
     {
         #region Fields
         public override string ID => "Just_Wait"; //Your mod ID (unique)
         public override string Name => "Just Wait"; //You mod name
         public override string Author => "Menthus15"; //Your Username
-        public override string Version => "0.1.1"; //Version
+        public override string Version => "1.0.0"; //Version
         public override string Description => "Allows the player to wait for a specified period of time."; //Short description of your mod
         /// <summary>
         /// The path to the embeded unity3d resource(s), which is used when loading assets.
@@ -77,6 +77,10 @@ namespace Menthus15Mods.Just_Wait
         /// The component that represents what time of day it is (in military time).
         /// </summary>
         private FsmInt SunTime { get; set; }
+        /// <summary>
+        /// The component that represents what day of the week it is (with 1 being Monday and 7 being Sunday).
+        /// </summary>
+        private FsmInt GlobalDay { get; set; }
         /// <summary>
         /// A global FSM boolean that manages the in-game mouse cursor state.
         /// </summary>
@@ -153,10 +157,15 @@ namespace Menthus15Mods.Just_Wait
         public override void ModSettings()
         {
             AdvanceTimeKeybind = Keybind.Add(this, "advance_time", "Advance Time", KeyCode.T, KeyCode.LeftShift);
+            Settings.AddHeader(this, "Cheat Toggles");
             AllowWaitInJail = Settings.AddCheckBox(this, "allow_wait_in_jail", "Allow Wait In Jail", false);
+            Settings.AddText(this, "Toggles the ability to wait while in jail.");
             AllowWaitInCar = Settings.AddCheckBox(this, "allow_wait_in_car", "Allow Wait In Car", false);
+            Settings.AddText(this, "Toggles the ability to wait while operating a vehicle (i.e. whether you can wait while in a car).");
             AllowWaitWhileDying = Settings.AddCheckBox(this, "allow_wait_while_dying", "Allow Wait While Dying");
+            Settings.AddText(this, "Toggles the ability to wait while you're dying from hunger, thirst, urine, etc.");
             AllowWaitWhileMoving = Settings.AddCheckBox(this, "allow_wait_while_moving", "Allow Wait While Moving");
+            Settings.AddText(this, "Toggles the ability to wait while in motion (falling, walking, etc).");
         }
 
         private void Mod_PostLoad()
@@ -180,6 +189,7 @@ namespace Menthus15Mods.Just_Wait
         /// </summary>
         private void SetupTimeAdvancement()
         {
+            GlobalDay = PlayMakerGlobals.Instance.Variables.FindFsmInt("GlobalDay");
             SetupJailVariables();
             SetupSofaVariables();
             SetupPlayerVariables();
@@ -500,22 +510,7 @@ namespace Menthus15Mods.Just_Wait
             if (SofaTimeOfDay.Value == 24)
                 ExecuteFSMState("Not advance");
             else
-            {
-                ExecuteFSMState("Check time of day");
-
-                if (SofaTimeOfDay.Value >= 24)
-                {
-                    ExecuteFSMState("Advance day");
-
-                    if (PlayMakerGlobals.Instance.Variables.FindFsmInt("GlobalDay").Value > 7)
-                        PlayMakerGlobals.Instance.Variables.FindFsmInt("GlobalDay").Value = 1;
-                }
-                else
-                {
-                    ExecuteFSMState("Wake up");
-                    shouldWakeUp = false;
-                }
-            }
+                shouldWakeUp = MimicCheckTimeOfDay();
 
             if (shouldWakeUp)
                 ExecuteFSMState("Wake up");
@@ -546,6 +541,30 @@ namespace Menthus15Mods.Just_Wait
             SofaFSM.Stop();
             SofaFSM.StartState = state;
             SofaFSM.Start();
+        }
+
+        /// <summary>
+        /// Attempts to execute all of the same actions belonging to the 'Check time of day' state on the sofa fsm.
+        /// </summary>
+        /// <returns>True if the day should advance and false otherwise.</returns>
+        private bool MimicCheckTimeOfDay()
+        {
+            ExecuteFSMState("Check time of day");
+
+            if (SofaTimeOfDay.Value >= 24)
+            {
+                ExecuteFSMState("Advance day");
+
+                if (GlobalDay.Value > 7)
+                    GlobalDay.Value = 1;
+            }
+            else
+            {
+                ExecuteFSMState("Wake up");
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>

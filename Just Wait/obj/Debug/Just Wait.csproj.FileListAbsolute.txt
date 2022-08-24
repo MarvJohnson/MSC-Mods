@@ -1,0 +1,28 @@
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\0Harmony.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\Assembly-CSharp-firstpass.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\Assembly-CSharp.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\cInput.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\MSCLoader.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\PlayMaker.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\UnityEngine.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\UnityEngine.UI.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\NAudio.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\NVorbis.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\Ionic.Zip.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\INIFileParser.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\Newtonsoft.Json.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\NAudio.Flac.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\Assembly-UnityScript-firstpass.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\ES2.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\HOTween.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\Mono.Security.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\System.Runtime.Serialization.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\Boo.Lang.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\MoodkieSecurity.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\MSCLoader.xml
+C:\Users\marve\source\repos\MSC Mods\Just Wait\obj\Debug\Just Wait.csproj.CoreCompileInputs.cache
+C:\Users\marve\source\repos\MSC Mods\Just Wait\obj\Debug\Just Wait.csproj.CopyComplete
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\JustWait.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\JustWait.pdb
+C:\Users\marve\source\repos\MSC Mods\Just Wait\obj\Debug\JustWait.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\obj\Debug\JustWait.pdb

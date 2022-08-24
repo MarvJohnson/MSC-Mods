@@ -1,0 +1,27 @@
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\JustWait.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\0Harmony.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\Assembly-CSharp-firstpass.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\Assembly-CSharp.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\cInput.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\MSCLoader.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\PlayMaker.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\UnityEngine.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\UnityEngine.UI.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\NAudio.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\NVorbis.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\Ionic.Zip.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\INIFileParser.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\Newtonsoft.Json.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\NAudio.Flac.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\Assembly-UnityScript-firstpass.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\ES2.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\HOTween.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\Mono.Security.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\System.Runtime.Serialization.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\Boo.Lang.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\MoodkieSecurity.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\MSCLoader.xml
+C:\Users\marve\source\repos\MSC Mods\Just Wait\obj\Release\Just Wait.csproj.AssemblyReference.cache
+C:\Users\marve\source\repos\MSC Mods\Just Wait\obj\Release\Just Wait.csproj.CoreCompileInputs.cache
+C:\Users\marve\source\repos\MSC Mods\Just Wait\obj\Release\Just Wait.csproj.CopyComplete
+C:\Users\marve\source\repos\MSC Mods\Just Wait\obj\Release\JustWait.dll

@@ -21,7 +21,6 @@ C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\System.Runtime.Serial
 C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\Boo.Lang.dll
 C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\MoodkieSecurity.dll
 C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Release\MSCLoader.xml
-C:\Users\marve\source\repos\MSC Mods\Just Wait\obj\Release\Just Wait.csproj.AssemblyReference.cache
 C:\Users\marve\source\repos\MSC Mods\Just Wait\obj\Release\Just Wait.csproj.CoreCompileInputs.cache
 C:\Users\marve\source\repos\MSC Mods\Just Wait\obj\Release\Just Wait.csproj.CopyComplete
 C:\Users\marve\source\repos\MSC Mods\Just Wait\obj\Release\JustWait.dll

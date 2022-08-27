@@ -12,7 +12,7 @@ namespace Menthus15Mods.Just_Wait
         public override string ID => "Just_Wait"; //Your mod ID (unique)
         public override string Name => "Just Wait"; //You mod name
         public override string Author => "Menthus15"; //Your Username
-        public override string Version => "1.0.0"; //Version
+        public override string Version => "1.2.0"; //Version
         public override string Description => "Allows the player to wait for a specified period of time."; //Short description of your mod
         /// <summary>
         /// The path to the embeded unity3d resource(s), which is used when loading assets.

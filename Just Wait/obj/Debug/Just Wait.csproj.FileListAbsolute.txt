@@ -1,3 +1,5 @@
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\JustWait.dll
+C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\JustWait.pdb
 C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\0Harmony.dll
 C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\Assembly-CSharp-firstpass.dll
 C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\Assembly-CSharp.dll
@@ -22,7 +24,6 @@ C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\MoodkieSecurity.dll
 C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\MSCLoader.xml
 C:\Users\marve\source\repos\MSC Mods\Just Wait\obj\Debug\Just Wait.csproj.CoreCompileInputs.cache
 C:\Users\marve\source\repos\MSC Mods\Just Wait\obj\Debug\Just Wait.csproj.CopyComplete
-C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\JustWait.dll
-C:\Users\marve\source\repos\MSC Mods\Just Wait\bin\Debug\JustWait.pdb
 C:\Users\marve\source\repos\MSC Mods\Just Wait\obj\Debug\JustWait.dll
 C:\Users\marve\source\repos\MSC Mods\Just Wait\obj\Debug\JustWait.pdb
+C:\Users\marve\source\repos\MSC Mods\Just Wait\obj\Debug\Just Wait.csproj.AssemblyReference.cache

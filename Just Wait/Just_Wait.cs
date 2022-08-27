@@ -2,9 +2,7 @@
 using Menthus15Mods.Just_Wait.UI;
 using MSCLoader;
 using System.Linq;
-using System.Reflection;
 using UnityEngine;
-using UnityEngine.Events;
 
 namespace Menthus15Mods.Just_Wait
 {
@@ -21,10 +19,13 @@ namespace Menthus15Mods.Just_Wait
         /// </summary>
         private const string EmbededAssetBundlePath = "Menthus15Mods.Just_Wait.Assets.justwait.unity3d";
         private Keybind AdvanceTimeKeybind { get; set; }
-        private SettingsCheckBox AllowWaitInJail { get; set; }
-        private SettingsCheckBox AllowWaitInCar { get; set; }
-        private SettingsCheckBox AllowWaitWhileDying { get; set; }
-        private SettingsCheckBox AllowWaitWhileMoving { get; set; }
+        private SettingsCheckBox AllowWaitInJailCheckBox { get; set; }
+        private SettingsCheckBox AllowWaitInCarCheckBox { get; set; }
+        private SettingsCheckBox AllowWaitWhileDyingCheckBox { get; set; }
+        private SettingsCheckBox AllowWaitWhileMovingCheckBox { get; set; }
+        private SettingsCheckBox UpdateFleetariTimeCheckBox { get; set; }
+        private SettingsCheckBox UpdateFishTrapTimeCheckBox { get; set; }
+        private SettingsCheckBox UpdateKiljuBrewTimeCheckBox { get; set; }
         /// <summary>
         /// The component used to drive the player's movement.
         /// </summary>
@@ -126,6 +127,22 @@ namespace Menthus15Mods.Just_Wait
         /// </summary>
         private GameObject Jail { get; set; }
         /// <summary>
+        /// A cache for Fleetari's order time.
+        /// </summary>
+        private FsmFloat FleetariOrderTime { get; set; }
+        /// <summary>
+        /// A cache for Fleetari's ferndale wait time.
+        /// </summary>
+        private FsmFloat FleetariFerndaleWait { get; set; }
+        /// <summary>
+        /// A cache for the Kilju Bucket's brew time.
+        /// </summary>
+        private FsmFloat KiljuBrewTime { get; set; }
+        /// <summary>
+        /// A cache for the Fish Trap's timer.
+        /// </summary>
+        private FsmFloat FishTrapTime { get; set; }
+        /// <summary>
         /// A flag for whether time is being sped up or not.
         /// </summary>
         private bool AdvancingTime { get; set; }
@@ -157,15 +174,23 @@ namespace Menthus15Mods.Just_Wait
         public override void ModSettings()
         {
             AdvanceTimeKeybind = Keybind.Add(this, "advance_time", "Advance Time", KeyCode.T, KeyCode.LeftShift);
+            Settings.AddHeader(this, "Main Toggles");
+            UpdateFleetariTimeCheckBox = Settings.AddCheckBox(this, "update_fleetari_time", "Update Fleetari Time", true);
+            Settings.AddText(this, "Toggles whether the time for Fleetari service orders will pass when you advance time.");
+            UpdateFishTrapTimeCheckBox = Settings.AddCheckBox(this, "update_fish_trap_time", "Update Fish Trap Time", true);
+            Settings.AddText(this, "Toggles whether the time to randomly catch a fish will progress when you advance time.");
+            UpdateKiljuBrewTimeCheckBox = Settings.AddCheckBox(this, "update_kilju_brew_time", "Update Kilju Brew Time", true);
+            Settings.AddText(this, "Toggles whether Kilju brewing will progress when you advance time.");
             Settings.AddHeader(this, "Cheat Toggles");
-            AllowWaitInJail = Settings.AddCheckBox(this, "allow_wait_in_jail", "Allow Wait In Jail", false);
+            AllowWaitInJailCheckBox = Settings.AddCheckBox(this, "allow_wait_in_jail", "Allow Wait In Jail", false);
             Settings.AddText(this, "Toggles the ability to wait while in jail.");
-            AllowWaitInCar = Settings.AddCheckBox(this, "allow_wait_in_car", "Allow Wait In Car", false);
+            AllowWaitInCarCheckBox = Settings.AddCheckBox(this, "allow_wait_in_car", "Allow Wait In Car", false);
             Settings.AddText(this, "Toggles the ability to wait while operating a vehicle (i.e. whether you can wait while in a car).");
-            AllowWaitWhileDying = Settings.AddCheckBox(this, "allow_wait_while_dying", "Allow Wait While Dying");
+            AllowWaitWhileDyingCheckBox = Settings.AddCheckBox(this, "allow_wait_while_dying", "Allow Wait While Dying");
             Settings.AddText(this, "Toggles the ability to wait while you're dying from hunger, thirst, urine, etc.");
-            AllowWaitWhileMoving = Settings.AddCheckBox(this, "allow_wait_while_moving", "Allow Wait While Moving");
+            AllowWaitWhileMovingCheckBox = Settings.AddCheckBox(this, "allow_wait_while_moving", "Allow Wait While Moving");
             Settings.AddText(this, "Toggles the ability to wait while in motion (falling, walking, etc).");
+
         }
 
         private void Mod_PostLoad()
@@ -195,6 +220,9 @@ namespace Menthus15Mods.Just_Wait
             SetupPlayerVariables();
             SetupPlayerSimulationVariables();
             SetupSunVariables();
+            SetupFleetariOrderVariables();
+            SetupKiljuVariables();
+            SetupFishTrapVariables();
         }
 
         /// <summary>
@@ -298,6 +326,37 @@ namespace Menthus15Mods.Just_Wait
         {
             NotificationText = Canvas.transform.Find("NotificationText").GetComponent<NotificationText>();
         }
+
+        /// <summary>
+        /// Caches the Kilju Bucket's "Time" variable.
+        /// </summary>
+        private void SetupKiljuVariables()
+        {
+            var kiljuBucket = GameObject.Find("ITEMS/bucket(itemx)");
+            var kiljuBucketFSM = kiljuBucket.GetPlayMaker("Use");
+            KiljuBrewTime = kiljuBucketFSM.GetVariable<FsmFloat>("Time");
+        }
+
+        /// <summary>
+        /// Caches the Fleetari "Order" PlayMakerFSM.
+        /// </summary>
+        private void SetupFleetariOrderVariables()
+        {
+            var fleetariOrder = GameObject.Find("REPAIRSHOP/Order");
+            var fleetariOrderFSM = fleetariOrder.GetPlayMaker("Data");
+            FleetariOrderTime = fleetariOrderFSM.GetVariable<FsmFloat>("_OrderTime");
+            FleetariFerndaleWait = fleetariOrderFSM.GetVariable<FsmFloat>("_FerndaleWait");
+        }
+
+        /// <summary>
+        /// Caches the Fish Trap's "Wait" variable.
+        /// </summary>
+        private void SetupFishTrapVariables()
+        {
+            var fishTrap = GameObject.Find("fish trap(itemx)/Logic");
+            var fishTrapFSM = fishTrap.GetPlayMaker("Logic");
+            FishTrapTime = fishTrapFSM.GetVariable<FsmFloat>("Wait");
+        }
         #endregion
 
         private void Mod_OnUpdate()
@@ -322,24 +381,24 @@ namespace Menthus15Mods.Just_Wait
             if (ModLoader.GetCurrentScene() != CurrentScene.Game)
                 playerNotification = "Must be in GAME scene!";
             else if (
-                !AllowWaitInJail.GetValue() &&
+                !AllowWaitInJailCheckBox.GetValue() &&
                 Jail.activeSelf
                 )
                 playerNotification = "Cannot wait in jail!";
             else if (PlayerSleeps.Value)
                 playerNotification = "Cannot wait while sleeping!";
             else if (
-                !AllowWaitInCar.GetValue() &&
+                !AllowWaitInCarCheckBox.GetValue() &&
                 PlayerInCar.Value
                 )
                 playerNotification = "Cannot wait while operating a vehicle!";
             else if (
-                !AllowWaitWhileMoving.GetValue() &&
+                !AllowWaitWhileMovingCheckBox.GetValue() &&
                 IsPlayerMoving()
                 )
                 playerNotification = "Cannot wait while moving!";
             else if (
-                !AllowWaitWhileDying.GetValue() &&
+                !AllowWaitWhileDyingCheckBox.GetValue() &&
                 IsPlayerDyingFromAttribute()
                 )
                 playerNotification = "Cannot wait while at risk of dying!";
@@ -467,6 +526,9 @@ namespace Menthus15Mods.Just_Wait
         private void AdvanceTime()
         {
             SetPlayerAttributes();
+            UpdateFleetariTime();
+            UpdateKiljuBrewTime();
+            UpdateFishTrapTimer();
             MimicSofaTransitions();
             StartFinishTimeAdvancement();
         }
@@ -484,17 +546,54 @@ namespace Menthus15Mods.Just_Wait
         }
 
         /// <summary>
+        /// Updates Fleetari's order timer based on the amount of time passed, proportional to real time.
+        /// </summary>
+        private void UpdateFleetariTime()
+        {
+            if (!UpdateFleetariTimeCheckBox.GetValue())
+                return;
+
+            var waitTimestampAsRealtimeSeconds = WaitTimestamp / 12f * 60f * 60f;
+            FleetariFerndaleWait.Value = Mathf.Clamp(FleetariFerndaleWait.Value - waitTimestampAsRealtimeSeconds, 0f, float.PositiveInfinity);
+            FleetariOrderTime.Value = Mathf.Clamp(FleetariOrderTime.Value - waitTimestampAsRealtimeSeconds, 0f, float.PositiveInfinity);
+        }
+
+        /// <summary>
+        /// Updates the Kilju Bucket's brew time based on the amount of time passed, proportional to real time.
+        /// </summary>
+        private void UpdateKiljuBrewTime()
+        {
+            if (!UpdateKiljuBrewTimeCheckBox.GetValue())
+                return;
+
+            var waitTimestampAsRealtimeMinutes = WaitTimestamp / 12f * 60f;
+            KiljuBrewTime.Value = Mathf.Clamp(KiljuBrewTime.Value + waitTimestampAsRealtimeMinutes, 0f, float.PositiveInfinity);
+        }
+
+        /// <summary>
+        /// Updates the Fish Trap's timer based on the amount of time passed, proportional to real time.
+        /// </summary>
+        private void UpdateFishTrapTimer()
+        {
+            if (!UpdateFishTrapTimeCheckBox.GetValue())
+                return;
+
+            var waitTimestampAsRealtimeSeconds = WaitTimestamp / 12f * 60f * 60f;
+            FishTrapTime.Value = Mathf.Clamp(FishTrapTime.Value - waitTimestampAsRealtimeSeconds, 0f, float.PositiveInfinity);
+        }
+
+        /// <summary>
         /// Sets player and sofa fsm values to what they would be after waiting for 'WaitTimestamp' number of hours.
         /// </summary>
         private void SetPlayerAttributes()
         {
-            var WaitTimestampMinutes = WaitTimestamp * 60f;
-            PlayerFatigue.Value += WaitTimestampMinutes / PlayerSimulationRate.Value * PlayerFatigueRate.Value;
-            PlayerStress.Value += WaitTimestampMinutes / PlayerSimulationRate.Value * PlayerStressRate.Value;
+            var waitTimestampMinutes = WaitTimestamp * 60f;
+            PlayerFatigue.Value += waitTimestampMinutes / PlayerSimulationRate.Value * PlayerFatigueRate.Value;
+            PlayerStress.Value += waitTimestampMinutes / PlayerSimulationRate.Value * PlayerStressRate.Value;
 
             // These two assignments allow the existing fsm state to handle updating all the other attributes.
             SofaSleepTime.Value = WaitTimestamp;
-            SofaRate.Value = WaitTimestampMinutes / PlayerSimulationRate.Value;
+            SofaRate.Value = waitTimestampMinutes / PlayerSimulationRate.Value;
         }
 
         /// <summary>
@@ -530,6 +629,9 @@ namespace Menthus15Mods.Just_Wait
             SofaPMFSM.GetState("Calc rates").Actions[2].Enabled = enabled;
             // Sets fatigue to 0
             SofaPMFSM.GetState("Calc rates").Actions[6].Enabled = enabled;
+            // Clamps TimeOfDay between 2 and 24
+            SofaPMFSM.GetState("Advance day").Actions[0].Enabled = enabled;
+            SofaPMFSM.GetState("Advance day").Actions[1].Enabled = enabled;
         }
 
         /// <summary>

@@ -108,7 +108,7 @@ namespace Menthus15Mods.Just_Wait.UI
         /// <returns>The string 'AM' or 'PM'.</returns>
         private string GetMilitaryDayPeriod(int militaryTime)
         {
-            return militaryTime <= 12f ? "AM" : "PM";
+            return militaryTime % 24 < 12f ? "AM" : "PM";
         }
 
         /// <summary>

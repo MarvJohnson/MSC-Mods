@@ -2,6 +2,7 @@
 using Menthus15Mods.Just_Wait.UI;
 using MSCLoader;
 using System.Linq;
+using System.Reflection;
 using UnityEngine;
 
 namespace Menthus15Mods.Just_Wait
@@ -18,11 +19,20 @@ namespace Menthus15Mods.Just_Wait
         /// The path to the embeded unity3d resource(s), which is used when loading assets.
         /// </summary>
         private const string EmbededAssetBundlePath = "Menthus15Mods.Just_Wait.Assets.justwait.unity3d";
+        /// <summary>
+        /// How long (in real-time seconds) it takes for the blindness from the player being burned by the Satsume's radiator to wear off.
+        /// </summary>
+        private const float PlayerBurnBlindnessEaseTime = 600f;
+        /// <summary>
+        /// How long (in real-time seconds) it takes for the blindness from the player being stung by a wasp to wear off.
+        /// </summary>
+        private const float PlayerWaspStingBlindnessEaseTime = 600f;
         private Keybind AdvanceTimeKeybind { get; set; }
         private SettingsCheckBox AllowWaitInJailCheckBox { get; set; }
         private SettingsCheckBox AllowWaitInCarCheckBox { get; set; }
         private SettingsCheckBox AllowWaitWhileDyingCheckBox { get; set; }
         private SettingsCheckBox AllowWaitWhileMovingCheckBox { get; set; }
+        private SettingsCheckBox UpdatePlayerAttributesCheckBox { get; set; }
         private SettingsCheckBox UpdateFleetariTimeCheckBox { get; set; }
         private SettingsCheckBox UpdateFishTrapTimeCheckBox { get; set; }
         private SettingsCheckBox UpdateKiljuBrewTimeCheckBox { get; set; }
@@ -76,6 +86,30 @@ namespace Menthus15Mods.Just_Wait
         /// A cache for the player's car control toggle. This indicates whether the player is driving.
         /// </summary>
         private FsmBool PlayerInCar { get; set; }
+        /// <summary>
+        /// A cache for the component which is responsible for controlling the player blindness easing, which stems from the player being burned by the Satsume's radiator.
+        /// </summary>
+        private object PlayerBurnBlindnessEasing { get; set; }
+        /// <summary>
+        /// A cache for the float which determines how much longer the player has to wait before regaining their vision, after being burned by the Satsume's radiator.
+        /// </summary>
+        private FieldInfo PlayerBurnBlindnessEasingRunningTime { get; set; }
+        /// <summary>
+        /// A cache for the component which is responsible for controlling the player blindness easing, which stems from the player being stung by a wasp.
+        /// </summary>
+        private object PlayerWaspStingBlindnessEasing { get; set; }
+        /// <summary>
+        /// A cache for the float which determines how much longer the player has to wait before regaining their vision, after being stung by a wasp.
+        /// </summary>
+        private FieldInfo PlayerWaspStingBlindnessEasingRunningTime { get; set; }
+        /// <summary>
+        /// A cache for the float which helps calculate how quickly the player's drunkenness will fade.
+        /// </summary>
+        private FsmFloat PlayerMetabolism { get; set; }
+        /// <summary>
+        /// A cache for the float which represents how drunk the player currently is.
+        /// </summary>
+        private FsmFloat PlayerDrunkAdjusted { get; set; }
         /// <summary>
         /// The component that represents what time of day it is (in military time).
         /// </summary>
@@ -225,6 +259,8 @@ namespace Menthus15Mods.Just_Wait
             Settings.AddText(this, "Toggles whether the player's phone will progress (i.e. is more likely to ring, or will stop ringing) when you advance time.");
 
             Settings.AddHeader(this, "Cheat Toggles");
+            UpdatePlayerAttributesCheckBox = Settings.AddCheckBox(this, "update_player_attributes", "Update Player Attributes", true);
+            Settings.AddText(this, "Toggles whether the player's attributes (e.g. hunger, thirst, dirtiness, etc) will progress when you advance time.");
             AllowWaitInJailCheckBox = Settings.AddCheckBox(this, "allow_wait_in_jail", "Allow Wait In Jail", false);
             Settings.AddText(this, "Toggles the ability to wait while in jail.");
             AllowWaitInCarCheckBox = Settings.AddCheckBox(this, "allow_wait_in_car", "Allow Wait In Car", false);
@@ -279,7 +315,7 @@ namespace Menthus15Mods.Just_Wait
         private void SetupBillsVariables()
         {
             HouseElectricityKWH = PlayMakerGlobals.Instance.Variables
-                .GetFsmFloat("HouseElectricityKWH");
+                .FindFsmFloat("HouseElectricityKWH");
             HouseElectricityMainSwitch = GameObject.Find("YARD/Building/Dynamics/FuseTable/Fusetable/MainSwitch")
                 .GetPlayMaker("Use")
                 .GetVariable<FsmBool>("Switch");
@@ -332,29 +368,63 @@ namespace Menthus15Mods.Just_Wait
             PlayerCharacterController = PlayMakerGlobals.Instance.Variables
                 .FindFsmGameObject("SavePlayer").Value
                 .GetComponent<CharacterController>();
+
             PlayerStop = PlayMakerGlobals.Instance.Variables
                 .FindFsmBool("PlayerStop");
+
             PlayerFatigue = PlayMakerGlobals.Instance.Variables
                 .FindFsmFloat("PlayerFatigue");
+
             PlayerFatigueRate = PlayMakerGlobals.Instance.Variables
                 .FindFsmFloat("PlayerFatigueRate");
+
             PlayerStress = PlayMakerGlobals.Instance.Variables
                 .FindFsmFloat("PlayerStress");
+
             PlayerStressRate = PlayMakerGlobals.Instance.Variables
                 .FindFsmFloat("PlayerStressRate");
+
             PlayerHunger = PlayMakerGlobals.Instance.Variables
                 .FindFsmFloat("PlayerHunger");
+
             PlayerThirst = PlayMakerGlobals.Instance.Variables
                 .FindFsmFloat("PlayerThirst");
+
             PlayerUrine = PlayMakerGlobals.Instance.Variables
                 .FindFsmFloat("PlayerUrine");
+
             PlayerSleeps = PlayMakerGlobals.Instance.Variables
                 .FindFsmBool("PlayerSleeps");
+
             PlayerInCar = PlayMakerGlobals.Instance.Variables
                 .FindFsmGameObject("SavePlayer").Value
                 .GetComponents<PlayMakerFSM>()
                 .Single(pmfsm => pmfsm.FsmName == "Crouch")
                 .GetVariable<FsmBool>("PlayerInCar");
+
+            var playerFPSCamera = GameObject.Find("PLAYER/Pivot/AnimPivot/Camera/FPSCamera/FPSCamera");
+
+            var playerBlindnessPMFSM = playerFPSCamera
+                .GetPlayMaker("Blindness");
+
+            PlayerBurnBlindnessEasing = playerBlindnessPMFSM
+                .GetState("Blindness").Actions[3];
+
+            PlayerBurnBlindnessEasingRunningTime = PlayerBurnBlindnessEasing
+                .GetType()
+                .GetField("runningTime", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            PlayerWaspStingBlindnessEasing = playerBlindnessPMFSM.GetState("Ease allergy");
+
+            PlayerWaspStingBlindnessEasingRunningTime = PlayerWaspStingBlindnessEasing
+                .GetType()
+                .GetField("runningTime", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            PlayerMetabolism = playerFPSCamera
+                .GetPlayMaker("Drunk Mode")
+                .GetVariable<FsmFloat>("Metabolism");
+
+            PlayerDrunkAdjusted = PlayMakerGlobals.Instance.Variables.FindFsmFloat("PlayerDrunkAdjusted");
         }
 
         /// <summary>
@@ -730,13 +800,28 @@ namespace Menthus15Mods.Just_Wait
         /// </summary>
         private void SetPlayerAttributes()
         {
+            if (!UpdatePlayerAttributesCheckBox.GetValue())
+                return;
+
             var waitTimestampMinutes = WaitTimestamp * 60f;
             PlayerFatigue.Value += waitTimestampMinutes / PlayerSimulationRate.Value * PlayerFatigueRate.Value;
             PlayerStress.Value += waitTimestampMinutes / PlayerSimulationRate.Value * PlayerStressRate.Value;
+            SetPlayerEasing(waitTimestampMinutes, PlayerBurnBlindnessEasing, PlayerBurnBlindnessEasingRunningTime, PlayerBurnBlindnessEaseTime);
+            SetPlayerEasing(waitTimestampMinutes, PlayerWaspStingBlindnessEasing, PlayerWaspStingBlindnessEasingRunningTime, PlayerWaspStingBlindnessEaseTime);
+            PlayerDrunkAdjusted.Value = Mathf.Clamp(PlayerDrunkAdjusted.Value - waitTimestampMinutes * 60f / 12f * PlayerMetabolism.Value, 0f, float.PositiveInfinity);
 
             // These two assignments allow the existing fsm state to handle updating all the other attributes.
             SofaSleepTime.Value = WaitTimestamp;
             SofaRate.Value = waitTimestampMinutes / PlayerSimulationRate.Value;
+        }
+
+        private void SetPlayerEasing(float waitTimestampMinutes, object playerEasing, FieldInfo playerEasingRunningTime, float easeTime)
+        {
+            var currentRunningTime = (float)playerEasingRunningTime.GetValue(playerEasing);
+            var increaseInRunningTime = waitTimestampMinutes * 60f / 12f;
+            // Must clamp the value to the "wait time" assigned to the easing function. If it goes above that, unexpected behavior can occur.
+            var newRunningTime = Mathf.Clamp(currentRunningTime + increaseInRunningTime, 0f, easeTime);
+            playerEasingRunningTime.SetValue(playerEasing, newRunningTime);
         }
 
         /// <summary>
@@ -745,7 +830,9 @@ namespace Menthus15Mods.Just_Wait
         private void MimicSofaTransitions()
         {
             SetConflictingActionEnabled(false);
-            ExecuteFSMState(SofaFSM, "Calc rates");
+
+            if (UpdatePlayerAttributesCheckBox.GetValue())
+                ExecuteFSMState(SofaFSM, "Calc rates");
 
             var shouldWakeUp = true;
 
@@ -769,14 +856,13 @@ namespace Menthus15Mods.Just_Wait
         /// <param name="enabled">The new state action enabled toggle.</param>
         private void SetConflictingActionEnabled(bool enabled)
         {
-            // Sets rate based on fatigure.
+            // Sets rate based on fatigue.
             SofaPMFSM.GetState("Calc rates").Actions[0].Enabled = enabled;
             // Adjusts drunkenness
             SofaPMFSM.GetState("Calc rates").Actions[2].Enabled = enabled;
             // Sets fatigue to 0
             SofaPMFSM.GetState("Calc rates").Actions[6].Enabled = enabled;
             // Clamps TimeOfDay between 2 and 24
-            /*SofaPMFSM.GetState("Advance day").Actions[0].Enabled = enabled;*/
             SofaPMFSM.GetState("Advance day").Actions[1].Enabled = enabled;
         }
 

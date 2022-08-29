@@ -26,3 +26,4 @@ C:\Users\marve\source\repos\MSC Mods\Just Wait\obj\Debug\Just Wait.csproj.CoreCo
 C:\Users\marve\source\repos\MSC Mods\Just Wait\obj\Debug\Just Wait.csproj.CopyComplete
 C:\Users\marve\source\repos\MSC Mods\Just Wait\obj\Debug\JustWait.dll
 C:\Users\marve\source\repos\MSC Mods\Just Wait\obj\Debug\JustWait.pdb
+C:\Users\marve\source\repos\MSC Mods\Just Wait\obj\Debug\Just Wait.csproj.AssemblyReference.cache

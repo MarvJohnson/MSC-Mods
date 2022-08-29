@@ -13,7 +13,7 @@ namespace Menthus15Mods.Just_Wait
         public override string ID => "Just_Wait"; //Your mod ID (unique)
         public override string Name => "Just Wait"; //You mod name
         public override string Author => "Menthus15"; //Your Username
-        public override string Version => "1.4.1"; //Version
+        public override string Version => "1.5.0"; //Version
         public override string Description => "Allows the player to wait for a specified period of time."; //Short description of your mod
         /// <summary>
         /// The path to the embeded unity3d resource(s), which is used when loading assets.
@@ -27,6 +27,18 @@ namespace Menthus15Mods.Just_Wait
         /// How long (in real-time seconds) it takes for the blindness from the player being stung by a wasp to wear off.
         /// </summary>
         private const float PlayerWaspStingBlindnessEaseTime = 600f;
+        /// <summary>
+        /// How quickly the player's hungover state drops.
+        /// </summary>
+        private const float PlayerHangoverEaseRate = 0.05f;
+        /// <summary>
+        /// How quickly the player's hunger increases while hungover.
+        /// </summary>
+        private const float PlayerHangoverHungerIncreaseRate = 0.007f;
+        /// <summary>
+        /// How quickly the player's stress increases while hungover.
+        /// </summary>
+        private const float PlayerHangoverStressIncreaseRate = 0.0014f;
         private Keybind AdvanceTimeKeybind { get; set; }
         private SettingsCheckBox AllowWaitInJailCheckBox { get; set; }
         private SettingsCheckBox AllowWaitInCarCheckBox { get; set; }
@@ -110,6 +122,10 @@ namespace Menthus15Mods.Just_Wait
         /// A cache for the float which represents how drunk the player currently is.
         /// </summary>
         private FsmFloat PlayerDrunkAdjusted { get; set; }
+        /// <summary>
+        /// A cache for the float which represents how long before the player is no longer hungover.
+        /// </summary>
+        private FsmFloat PlayerHangoverTimeLeft { get; set; }
         /// <summary>
         /// The component that represents what time of day it is (in military time).
         /// </summary>
@@ -426,6 +442,10 @@ namespace Menthus15Mods.Just_Wait
                 .GetVariable<FsmFloat>("Metabolism");
 
             PlayerDrunkAdjusted = PlayMakerGlobals.Instance.Variables.FindFsmFloat("PlayerDrunkAdjusted");
+
+            PlayerHangoverTimeLeft = playerFPSCamera
+                .GetPlayMaker("Hangover")
+                .GetVariable<FsmFloat>("TimeLeft");
         }
 
         /// <summary>
@@ -457,9 +477,11 @@ namespace Menthus15Mods.Just_Wait
                 FsmInject("State 3", delegate
             {
                 if (SunTime.Value == 0)
+                {
                     SunFSM.GameObject
                     .GetPlayMaker("Color")
                     .SendEvent("24");
+                }
             });
         }
 
@@ -805,11 +827,26 @@ namespace Menthus15Mods.Just_Wait
                 return;
 
             var waitTimestampMinutes = WaitTimestamp * 60f;
+            var waitTimestampSeconds = waitTimestampMinutes * 60f;
+            var waitTimestampRealtimeSeconds = waitTimestampSeconds / 12f;
+            var playerIsDrunk = PlayerDrunkAdjusted.Value > 0f;
+            var playerIsHungover = PlayerHangoverTimeLeft.Value > 0f;
+            var addedPlayerStressFromHangover = playerIsHungover ? waitTimestampSeconds * PlayerHangoverHungerIncreaseRate : 0f;
+            var addedPlayerStressFromTime = waitTimestampMinutes / PlayerSimulationRate.Value * PlayerStressRate.Value;
+            var totalAddedPlayerStress = addedPlayerStressFromTime + addedPlayerStressFromHangover;
+            var addedPlayerHungerFromHangover = playerIsHungover ? waitTimestampSeconds * PlayerHangoverStressIncreaseRate : 0f;
+
             PlayerFatigue.Value += waitTimestampMinutes / PlayerSimulationRate.Value * PlayerFatigueRate.Value;
-            PlayerStress.Value += waitTimestampMinutes / PlayerSimulationRate.Value * PlayerStressRate.Value;
+            PlayerStress.Value += totalAddedPlayerStress;
+            PlayerHunger.Value += addedPlayerHungerFromHangover;
             SetPlayerEasing(waitTimestampMinutes, PlayerBurnBlindnessEasing, PlayerBurnBlindnessEasingRunningTime, PlayerBurnBlindnessEaseTime);
             SetPlayerEasing(waitTimestampMinutes, PlayerWaspStingBlindnessEasing, PlayerWaspStingBlindnessEasingRunningTime, PlayerWaspStingBlindnessEaseTime);
-            PlayerDrunkAdjusted.Value = Mathf.Clamp(PlayerDrunkAdjusted.Value - waitTimestampMinutes * 60f / 12f * PlayerMetabolism.Value, 0f, float.PositiveInfinity);
+
+            if (playerIsDrunk)
+                PlayerDrunkAdjusted.Value = Mathf.Clamp(PlayerDrunkAdjusted.Value - waitTimestampRealtimeSeconds * PlayerMetabolism.Value, 0f, float.PositiveInfinity);
+
+            if (playerIsHungover)
+                PlayerHangoverTimeLeft.Value = Mathf.Clamp(PlayerHangoverTimeLeft.Value - waitTimestampRealtimeSeconds * PlayerHangoverEaseRate, 0f, float.PositiveInfinity);
 
             // These two assignments allow the existing fsm state to handle updating all the other attributes.
             SofaSleepTime.Value = WaitTimestamp;
@@ -835,15 +872,12 @@ namespace Menthus15Mods.Just_Wait
             if (UpdatePlayerAttributesCheckBox.GetValue())
                 ExecuteFSMState(SofaFSM, "Calc rates");
 
-            var shouldWakeUp = true;
-
-            if (SofaTimeOfDay.Value == 24)
-                ExecuteFSMState(SofaFSM, "Not advance");
-            else
-                shouldWakeUp = MimicCheckTimeOfDay();
+            var shouldWakeUp = MimicCheckTimeOfDay();
 
             if (shouldWakeUp)
+            {
                 ExecuteFSMState(SofaFSM, "Wake up");
+            }
 
             // The state called after the player wakes up
             ExecuteFSMState(SunFSM, "State 3");
@@ -865,6 +899,8 @@ namespace Menthus15Mods.Just_Wait
             SofaPMFSM.GetState("Calc rates").Actions[6].Enabled = enabled;
             // Clamps TimeOfDay between 2 and 24
             SofaPMFSM.GetState("Advance day").Actions[1].Enabled = enabled;
+            // Sets the Sun's Time to 24
+            SunFSM.GetState("00-02").Actions[10].Enabled = enabled;
         }
 
         /// <summary>

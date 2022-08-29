@@ -13,7 +13,7 @@ namespace Menthus15Mods.Just_Wait
         public override string ID => "Just_Wait"; //Your mod ID (unique)
         public override string Name => "Just Wait"; //You mod name
         public override string Author => "Menthus15"; //Your Username
-        public override string Version => "1.4.0"; //Version
+        public override string Version => "1.4.1"; //Version
         public override string Description => "Allows the player to wait for a specified period of time."; //Short description of your mod
         /// <summary>
         /// The path to the embeded unity3d resource(s), which is used when loading assets.
@@ -89,7 +89,7 @@ namespace Menthus15Mods.Just_Wait
         /// <summary>
         /// A cache for the component which is responsible for controlling the player blindness easing, which stems from the player being burned by the Satsume's radiator.
         /// </summary>
-        private object PlayerBurnBlindnessEasing { get; set; }
+        private FsmStateAction PlayerBurnBlindnessEasing { get; set; }
         /// <summary>
         /// A cache for the float which determines how much longer the player has to wait before regaining their vision, after being burned by the Satsume's radiator.
         /// </summary>
@@ -97,7 +97,7 @@ namespace Menthus15Mods.Just_Wait
         /// <summary>
         /// A cache for the component which is responsible for controlling the player blindness easing, which stems from the player being stung by a wasp.
         /// </summary>
-        private object PlayerWaspStingBlindnessEasing { get; set; }
+        private FsmStateAction PlayerWaspStingBlindnessEasing { get; set; }
         /// <summary>
         /// A cache for the float which determines how much longer the player has to wait before regaining their vision, after being stung by a wasp.
         /// </summary>
@@ -414,7 +414,8 @@ namespace Menthus15Mods.Just_Wait
                 .GetType()
                 .GetField("runningTime", BindingFlags.NonPublic | BindingFlags.Instance);
 
-            PlayerWaspStingBlindnessEasing = playerBlindnessPMFSM.GetState("Ease allergy");
+            PlayerWaspStingBlindnessEasing = playerBlindnessPMFSM
+                .GetState("Ease allergy").Actions[2];
 
             PlayerWaspStingBlindnessEasingRunningTime = PlayerWaspStingBlindnessEasing
                 .GetType()

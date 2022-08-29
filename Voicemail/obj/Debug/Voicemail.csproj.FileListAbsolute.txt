@@ -26,3 +26,4 @@ C:\Users\marve\source\repos\MSC Mods\Voicemail\obj\Debug\Voicemail.csproj.CoreCo
 C:\Users\marve\source\repos\MSC Mods\Voicemail\obj\Debug\Voicemail.csproj.CopyComplete
 C:\Users\marve\source\repos\MSC Mods\Voicemail\obj\Debug\Voicemail.dll
 C:\Users\marve\source\repos\MSC Mods\Voicemail\obj\Debug\Voicemail.pdb
+C:\Users\marve\source\repos\MSC Mods\Voicemail\obj\Debug\Voicemail.csproj.AssemblyReference.cache

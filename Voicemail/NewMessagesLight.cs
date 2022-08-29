@@ -30,6 +30,7 @@ namespace Menthus15Mods.Voicemail
         {
             if (stopFlashing)
                 CancelInvoke(nameof(ToggleLight));
+
             _Material.material.color = OnColor;
             _Material.material.SetColor(MaterialEmissionColorKey, OnColor * EmissionIntensity);
             _Light.enabled = true;
@@ -39,6 +40,7 @@ namespace Menthus15Mods.Voicemail
         {
             if (stopFlashing)
                 CancelInvoke(nameof(ToggleLight));
+
             _Material.material.color = OffColor;
             _Material.material.SetColor(MaterialEmissionColorKey, Invisible);
             _Light.enabled = false;
@@ -60,9 +62,6 @@ namespace Menthus15Mods.Voicemail
             _Light.color = OnColor;
         }
 
-        private void OnDisable()
-        {
-            Disable(true);
-        }
+        private void OnDisable() => Disable(true);
     }
 }

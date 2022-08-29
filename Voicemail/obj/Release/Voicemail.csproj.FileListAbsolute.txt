@@ -21,7 +21,6 @@ C:\Users\marve\source\repos\MSC Mods\Voicemail\bin\Release\System.Runtime.Serial
 C:\Users\marve\source\repos\MSC Mods\Voicemail\bin\Release\Boo.Lang.dll
 C:\Users\marve\source\repos\MSC Mods\Voicemail\bin\Release\MoodkieSecurity.dll
 C:\Users\marve\source\repos\MSC Mods\Voicemail\bin\Release\MSCLoader.xml
-C:\Users\marve\source\repos\MSC Mods\Voicemail\obj\Release\Voicemail.csproj.AssemblyReference.cache
 C:\Users\marve\source\repos\MSC Mods\Voicemail\obj\Release\Voicemail.csproj.CoreCompileInputs.cache
 C:\Users\marve\source\repos\MSC Mods\Voicemail\obj\Release\Voicemail.csproj.CopyComplete
 C:\Users\marve\source\repos\MSC Mods\Voicemail\obj\Release\Voicemail.dll

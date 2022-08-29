@@ -53,10 +53,6 @@ namespace Menthus15Mods.Voicemail
         /// </summary>
         private FsmString PhoneRingTopic { get; set; }
         /// <summary>
-        /// The fsm bool that indicates whether the player has paid their phone bill.
-        /// </summary>
-        private FsmBool PhoneBillPaid { get; set; }
-        /// <summary>
         /// The audio source that plays the dial tone whenever the player picks up the phone with no active call.
         /// </summary>
         private AudioSource PhoneNoConnection { get; set; }
@@ -141,7 +137,6 @@ namespace Menthus15Mods.Voicemail
             PhoneRingActions = PhoneRingFsm.GetState("State 4").Actions;
             PhoneRingAnswer = PhoneRingFsm.GetVariable<FsmBool>("Answer");
             PhoneRingTopic = PhoneRingFsm.GetVariable<FsmString>("Topic");
-            PhoneBillPaid = PhoneRingFsm.GetVariable<FsmBool>("BillsPaid");
             phoneRing.FsmInject("Disable phone", OnMissedCall);
             phoneRing.FsmInject("Beep beep", OnMessageFinished);
         }
@@ -258,7 +253,6 @@ namespace Menthus15Mods.Voicemail
         private bool CanStoreMissedCall(FsmBool currentPhoneCallTopic)
         {
             if (
-                !PhoneBillPaid.Value ||
                 PhoneRingAnswer.Value ||
                 currentPhoneCallTopic == null ||
                 CallTopicAlreadyStored(currentPhoneCallTopic.Name) ||

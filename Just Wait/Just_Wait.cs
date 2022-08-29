@@ -12,7 +12,7 @@ namespace Menthus15Mods.Just_Wait
         public override string ID => "Just_Wait"; //Your mod ID (unique)
         public override string Name => "Just Wait"; //You mod name
         public override string Author => "Menthus15"; //Your Username
-        public override string Version => "1.2.0"; //Version
+        public override string Version => "1.3.0"; //Version
         public override string Description => "Allows the player to wait for a specified period of time."; //Short description of your mod
         /// <summary>
         /// The path to the embeded unity3d resource(s), which is used when loading assets.
@@ -26,6 +26,8 @@ namespace Menthus15Mods.Just_Wait
         private SettingsCheckBox UpdateFleetariTimeCheckBox { get; set; }
         private SettingsCheckBox UpdateFishTrapTimeCheckBox { get; set; }
         private SettingsCheckBox UpdateKiljuBrewTimeCheckBox { get; set; }
+        private SettingsCheckBox UpdatePlayerBillsCheckBox { get; set; }
+        private SettingsCheckBox UpdatePlayerPhoneCheckBox { get; set; }
         /// <summary>
         /// The component used to drive the player's movement.
         /// </summary>
@@ -78,6 +80,10 @@ namespace Menthus15Mods.Just_Wait
         /// The component that represents what time of day it is (in military time).
         /// </summary>
         private FsmInt SunTime { get; set; }
+        /// <summary>
+        /// A cache for the sun's playmaker fsm.
+        /// </summary>
+        private Fsm SunFSM { get; set; }
         /// <summary>
         /// The component that represents what day of the week it is (with 1 being Monday and 7 being Sunday).
         /// </summary>
@@ -143,6 +149,38 @@ namespace Menthus15Mods.Just_Wait
         /// </summary>
         private FsmFloat FishTrapTime { get; set; }
         /// <summary>
+        /// A cache for the house's main electricity switch, which is used to determine if the kwh meter should advance when progressing time.
+        /// </summary>
+        private FsmBool HouseElectricityMainSwitch { get; set; }
+        /// <summary>
+        /// A cache for the house's kwh meter, which is evaluated when determining how much the player must pay.
+        /// </summary>
+        private FsmFloat HouseElectricityKWH { get; set; }
+        /// <summary>
+        /// A cache for the electricity bill wait countdown, which is evaluated when determining when to serve another bill to the player.
+        /// </summary>
+        private FsmFloat ElectricityBillWait { get; set; }
+        /// <summary>
+        /// A cache for the electricity bill cutoff countdown, which is evaluated when determining whether to cut off the power to the player's home.
+        /// </summary>
+        private FsmFloat ElectricityBillWaitCutoff { get; set; }
+        /// <summary>
+        /// A cache for the elctricity consumption speed, which is used to update the kwh meter.
+        /// </summary>
+        private FsmFloat ElectricityConsumptionSpeed { get; set; }
+        /// <summary>
+        /// A cache for the house's phone bill wait countdown, which changes how long before the next bill will arrive.
+        /// </summary>
+        private FsmFloat PhoneBillWait { get; set; }
+        /// <summary>
+        /// A cache for the house's phone bill cutoff countdown, which is evaluated when determining whether to cut off the player's home phone.
+        /// </summary>
+        private FsmFloat PhoneBillWaitCutoff { get; set; }
+        /// <summary>
+        /// A cache for the phone's delay before it checks if a call should come through (assuming one of the call topics is enabled and waiting).
+        /// </summary>
+        private FsmFloat PhoneRingTime { get; set; }
+        /// <summary>
         /// A flag for whether time is being sped up or not.
         /// </summary>
         private bool AdvancingTime { get; set; }
@@ -181,6 +219,11 @@ namespace Menthus15Mods.Just_Wait
             Settings.AddText(this, "Toggles whether the time to randomly catch a fish will progress when you advance time.");
             UpdateKiljuBrewTimeCheckBox = Settings.AddCheckBox(this, "update_kilju_brew_time", "Update Kilju Brew Time", true);
             Settings.AddText(this, "Toggles whether Kilju brewing will progress when you advance time.");
+            UpdatePlayerBillsCheckBox = Settings.AddCheckBox(this, "update_player_bills", "Update Player Bills", true);
+            Settings.AddText(this, "Toggles whether resources that effect the cost of bills, and how long before new bills are served, progress when you advance time.");
+            UpdatePlayerPhoneCheckBox = Settings.AddCheckBox(this, "update_player_phone", "Update Player Phone", true);
+            Settings.AddText(this, "Toggles whether the player's phone will progress (i.e. is more likely to ring, or will stop ringing) when you advance time.");
+
             Settings.AddHeader(this, "Cheat Toggles");
             AllowWaitInJailCheckBox = Settings.AddCheckBox(this, "allow_wait_in_jail", "Allow Wait In Jail", false);
             Settings.AddText(this, "Toggles the ability to wait while in jail.");
@@ -205,8 +248,10 @@ namespace Menthus15Mods.Just_Wait
         /// </summary>
         private void SetupMouseCursorObjects()
         {
-            PlayerInMenu = PlayMakerGlobals.Instance.Variables.FindFsmBool("PlayerInMenu");
-            OptionsMenu = GameObject.Find("Systems").transform.GetChild(7).gameObject;
+            PlayerInMenu = PlayMakerGlobals.Instance.Variables
+                .FindFsmBool("PlayerInMenu");
+            OptionsMenu = GameObject.Find("Systems").transform
+                .GetChild(7).gameObject;
         }
 
         /// <summary>
@@ -214,7 +259,8 @@ namespace Menthus15Mods.Just_Wait
         /// </summary>
         private void SetupTimeAdvancement()
         {
-            GlobalDay = PlayMakerGlobals.Instance.Variables.FindFsmInt("GlobalDay");
+            GlobalDay = PlayMakerGlobals.Instance.Variables
+                .FindFsmInt("GlobalDay");
             SetupJailVariables();
             SetupSofaVariables();
             SetupPlayerVariables();
@@ -223,6 +269,35 @@ namespace Menthus15Mods.Just_Wait
             SetupFleetariOrderVariables();
             SetupKiljuVariables();
             SetupFishTrapVariables();
+            SetupBillsVariables();
+            SetupPhoneVariables();
+        }
+
+        /// <summary>
+        /// Caches the components pertaining to bills the player has to pay.
+        /// </summary>
+        private void SetupBillsVariables()
+        {
+            HouseElectricityKWH = PlayMakerGlobals.Instance.Variables
+                .GetFsmFloat("HouseElectricityKWH");
+            HouseElectricityMainSwitch = GameObject.Find("YARD/Building/Dynamics/FuseTable/Fusetable/MainSwitch")
+                .GetPlayMaker("Use")
+                .GetVariable<FsmBool>("Switch");
+            ElectricityBillWait = GameObject.Find("Systems/ElectricityBills")
+                .GetPlayMaker("Data")
+                .GetVariable<FsmFloat>("WaitBill");
+            ElectricityBillWaitCutoff = GameObject.Find("Systems/ElectricityBills")
+                .GetPlayMaker("Data")
+                .GetVariable<FsmFloat>("WaitCutoff");
+            ElectricityConsumptionSpeed = GameObject.Find("YARD/Building/Dynamics/FuseTable/Gauge/KWH-meter")
+                .GetPlayMaker("Data")
+                .GetVariable<FsmFloat>("Speed");
+            PhoneBillWait = GameObject.Find("Systems/PhoneBills")
+                .GetPlayMaker("Data")
+                .GetVariable<FsmFloat>("WaitBill");
+            PhoneBillWaitCutoff = GameObject.Find("Systems/PhoneBills")
+                .GetPlayMaker("Data")
+                .GetVariable<FsmFloat>("WaitCutoff");
         }
 
         /// <summary>
@@ -230,7 +305,8 @@ namespace Menthus15Mods.Just_Wait
         /// </summary>
         private void SetupJailVariables()
         {
-            Jail = Resources.FindObjectsOfTypeAll<GameObject>().Single(obj => obj.name == "JAIL");
+            Jail = Resources.FindObjectsOfTypeAll<GameObject>()
+                .Single(obj => obj.name == "JAIL");
         }
 
         /// <summary>
@@ -238,7 +314,9 @@ namespace Menthus15Mods.Just_Wait
         /// </summary>
         private void SetupSofaVariables()
         {
-            var sofa = Resources.FindObjectsOfTypeAll<Rigidbody>().Single(rigi => rigi.name == "sofa(itemx)").transform.Find("Sleep/SleepTrigger");
+            var sofa = Resources.FindObjectsOfTypeAll<Rigidbody>()
+                .Single(rigi => rigi.name == "sofa(itemx)").transform
+                .Find("Sleep/SleepTrigger");
             SofaPMFSM = sofa.GetComponent<PlayMakerFSM>();
             SofaFSM = SofaPMFSM.Fsm;
             SofaTimeOfDay = SofaPMFSM.GetVariable<FsmInt>("TimeOfDay");
@@ -251,17 +329,29 @@ namespace Menthus15Mods.Just_Wait
         /// </summary>
         private void SetupPlayerVariables()
         {
-            PlayerCharacterController = PlayMakerGlobals.Instance.Variables.FindFsmGameObject("SavePlayer").Value.GetComponent<CharacterController>();
-            PlayerStop = PlayMakerGlobals.Instance.Variables.FindFsmBool("PlayerStop");
-            PlayerFatigue = PlayMakerGlobals.Instance.Variables.FindFsmFloat("PlayerFatigue");
-            PlayerFatigueRate = PlayMakerGlobals.Instance.Variables.FindFsmFloat("PlayerFatigueRate");
-            PlayerStress = PlayMakerGlobals.Instance.Variables.FindFsmFloat("PlayerStress");
-            PlayerStressRate = PlayMakerGlobals.Instance.Variables.FindFsmFloat("PlayerStressRate");
-            PlayerHunger = PlayMakerGlobals.Instance.Variables.FindFsmFloat("PlayerHunger");
-            PlayerThirst = PlayMakerGlobals.Instance.Variables.FindFsmFloat("PlayerThirst");
-            PlayerUrine = PlayMakerGlobals.Instance.Variables.FindFsmFloat("PlayerUrine");
-            PlayerSleeps = PlayMakerGlobals.Instance.Variables.FindFsmBool("PlayerSleeps");
-            PlayerInCar = PlayMakerGlobals.Instance.Variables.FindFsmGameObject("SavePlayer").Value
+            PlayerCharacterController = PlayMakerGlobals.Instance.Variables
+                .FindFsmGameObject("SavePlayer").Value
+                .GetComponent<CharacterController>();
+            PlayerStop = PlayMakerGlobals.Instance.Variables
+                .FindFsmBool("PlayerStop");
+            PlayerFatigue = PlayMakerGlobals.Instance.Variables
+                .FindFsmFloat("PlayerFatigue");
+            PlayerFatigueRate = PlayMakerGlobals.Instance.Variables
+                .FindFsmFloat("PlayerFatigueRate");
+            PlayerStress = PlayMakerGlobals.Instance.Variables
+                .FindFsmFloat("PlayerStress");
+            PlayerStressRate = PlayMakerGlobals.Instance.Variables
+                .FindFsmFloat("PlayerStressRate");
+            PlayerHunger = PlayMakerGlobals.Instance.Variables
+                .FindFsmFloat("PlayerHunger");
+            PlayerThirst = PlayMakerGlobals.Instance.Variables
+                .FindFsmFloat("PlayerThirst");
+            PlayerUrine = PlayMakerGlobals.Instance.Variables
+                .FindFsmFloat("PlayerUrine");
+            PlayerSleeps = PlayMakerGlobals.Instance.Variables
+                .FindFsmBool("PlayerSleeps");
+            PlayerInCar = PlayMakerGlobals.Instance.Variables
+                .FindFsmGameObject("SavePlayer").Value
                 .GetComponents<PlayMakerFSM>()
                 .Single(pmfsm => pmfsm.FsmName == "Crouch")
                 .GetVariable<FsmBool>("PlayerInCar");
@@ -275,7 +365,8 @@ namespace Menthus15Mods.Just_Wait
             var playerDatabase = GameObject.Find("PlayerDatabase");
             var playerSimulation = playerDatabase.GetComponents<PlayMakerFSM>()
                 .Single(pmfsm => pmfsm.FsmName == "Simulation");
-            PlayerSimulationRate = playerSimulation.FsmVariables.FindFsmFloat("SimulationRate");
+            PlayerSimulationRate = playerSimulation.FsmVariables
+                .FindFsmFloat("SimulationRate");
         }
 
         /// <summary>
@@ -283,9 +374,22 @@ namespace Menthus15Mods.Just_Wait
         /// </summary>
         private void SetupSunVariables()
         {
-            var sunColor = Object.FindObjectsOfType<PlayMakerFSM>()
+            var sunPMFSM = Object.FindObjectsOfType<PlayMakerFSM>()
                             .Single(pmfsm => pmfsm.FsmName == "Color" && pmfsm.name == "SUN");
-            SunTime = sunColor.FsmVariables.FindFsmInt("Time");
+            SunFSM = sunPMFSM.Fsm;
+            SunTime = sunPMFSM.FsmVariables
+                .FindFsmInt("Time");
+            // Handles sending the necessary Sun event when the time gets reset to 0 when waking up at 12AM.
+            // Before, the time would be set to 0 and there were no conditions checking for that time; therefore, no event
+            // would be raised to update several time-based variables.
+            SunFSM.GameObject.
+                FsmInject("State 3", delegate
+            {
+                if (SunTime.Value == 0)
+                    SunFSM.GameObject
+                    .GetPlayMaker("Color")
+                    .SendEvent("24");
+            });
         }
 
         /// <summary>
@@ -356,6 +460,16 @@ namespace Menthus15Mods.Just_Wait
             var fishTrap = GameObject.Find("fish trap(itemx)/Logic");
             var fishTrapFSM = fishTrap.GetPlayMaker("Logic");
             FishTrapTime = fishTrapFSM.GetVariable<FsmFloat>("Wait");
+        }
+
+        /// <summary>
+        /// Caches the phone's logic PlayMakerFSM, which is, in part, responsible for determining when the phone should check for an incoming call and begin ringing if there is.
+        /// </summary>
+        private void SetupPhoneVariables()
+        {
+            PhoneRingTime = GameObject.Find("YARD/Building/LIVINGROOM/Telephone/Logic/PhoneLogic")
+                .GetPlayMaker("Ring")
+                .GetVariable<FsmFloat>("Time");
         }
         #endregion
 
@@ -503,7 +617,7 @@ namespace Menthus15Mods.Just_Wait
             AdvancingTime = true;
             WaitTimestamp = waitTimestamp;
             TimeAdvanceEaseTimestamp = Time.time + TimeAdvanceEaseTime;
-            ExecuteFSMState("Sleep");
+            ExecuteFSMState(SofaFSM, "Sleep");
         }
 
         /// <summary>
@@ -525,10 +639,13 @@ namespace Menthus15Mods.Just_Wait
         /// </summary>
         private void AdvanceTime()
         {
+            var waitTimestampAsRealtimeSeconds = WaitTimestamp / 12f * 60f * 60f;
             SetPlayerAttributes();
-            UpdateFleetariTime();
+            UpdateFleetariTime(waitTimestampAsRealtimeSeconds);
             UpdateKiljuBrewTime();
-            UpdateFishTrapTimer();
+            UpdateFishTrapTimer(waitTimestampAsRealtimeSeconds);
+            UpdatePlayerBills(waitTimestampAsRealtimeSeconds);
+            UpdatePhoneRing(waitTimestampAsRealtimeSeconds);
             MimicSofaTransitions();
             StartFinishTimeAdvancement();
         }
@@ -548,12 +665,11 @@ namespace Menthus15Mods.Just_Wait
         /// <summary>
         /// Updates Fleetari's order timer based on the amount of time passed, proportional to real time.
         /// </summary>
-        private void UpdateFleetariTime()
+        private void UpdateFleetariTime(float waitTimestampAsRealtimeSeconds)
         {
             if (!UpdateFleetariTimeCheckBox.GetValue())
                 return;
 
-            var waitTimestampAsRealtimeSeconds = WaitTimestamp / 12f * 60f * 60f;
             FleetariFerndaleWait.Value = Mathf.Clamp(FleetariFerndaleWait.Value - waitTimestampAsRealtimeSeconds, 0f, float.PositiveInfinity);
             FleetariOrderTime.Value = Mathf.Clamp(FleetariOrderTime.Value - waitTimestampAsRealtimeSeconds, 0f, float.PositiveInfinity);
         }
@@ -573,13 +689,40 @@ namespace Menthus15Mods.Just_Wait
         /// <summary>
         /// Updates the Fish Trap's timer based on the amount of time passed, proportional to real time.
         /// </summary>
-        private void UpdateFishTrapTimer()
+        private void UpdateFishTrapTimer(float waitTimestampAsRealtimeSeconds)
         {
             if (!UpdateFishTrapTimeCheckBox.GetValue())
                 return;
 
-            var waitTimestampAsRealtimeSeconds = WaitTimestamp / 12f * 60f * 60f;
             FishTrapTime.Value = Mathf.Clamp(FishTrapTime.Value - waitTimestampAsRealtimeSeconds, 0f, float.PositiveInfinity);
+        }
+
+        /// <summary>
+        /// Updates the resources which effect how much the player will have to pay for bills, as well as how long before the next bill will be served to them.
+        /// </summary>
+        private void UpdatePlayerBills(float waitTimestampAsRealtimeSeconds)
+        {
+            if (!UpdatePlayerBillsCheckBox.GetValue())
+                return;
+
+            if (HouseElectricityMainSwitch.Value)
+                HouseElectricityKWH.Value += waitTimestampAsRealtimeSeconds * (ElectricityConsumptionSpeed.Value * 0.0001f);
+
+            ElectricityBillWait.Value += waitTimestampAsRealtimeSeconds;
+            ElectricityBillWaitCutoff.Value += waitTimestampAsRealtimeSeconds;
+            PhoneBillWait.Value += waitTimestampAsRealtimeSeconds;
+            PhoneBillWaitCutoff.Value += waitTimestampAsRealtimeSeconds;
+        }
+
+        /// <summary>
+        /// Updates the time before the phone will check for an incoming call and ring if there is one.
+        /// </summary>
+        private void UpdatePhoneRing(float waitTimestampAsRealtimeSeconds)
+        {
+            if (!UpdatePlayerPhoneCheckBox.GetValue())
+                return;
+
+            PhoneRingTime.Value -= waitTimestampAsRealtimeSeconds;
         }
 
         /// <summary>
@@ -602,17 +745,20 @@ namespace Menthus15Mods.Just_Wait
         private void MimicSofaTransitions()
         {
             SetConflictingActionEnabled(false);
-            ExecuteFSMState("Calc rates");
+            ExecuteFSMState(SofaFSM, "Calc rates");
 
             var shouldWakeUp = true;
 
             if (SofaTimeOfDay.Value == 24)
-                ExecuteFSMState("Not advance");
+                ExecuteFSMState(SofaFSM, "Not advance");
             else
                 shouldWakeUp = MimicCheckTimeOfDay();
 
             if (shouldWakeUp)
-                ExecuteFSMState("Wake up");
+                ExecuteFSMState(SofaFSM, "Wake up");
+
+            // The state called after the player wakes up
+            ExecuteFSMState(SunFSM, "State 3");
 
             SetConflictingActionEnabled(true);
         }
@@ -630,19 +776,8 @@ namespace Menthus15Mods.Just_Wait
             // Sets fatigue to 0
             SofaPMFSM.GetState("Calc rates").Actions[6].Enabled = enabled;
             // Clamps TimeOfDay between 2 and 24
-            SofaPMFSM.GetState("Advance day").Actions[0].Enabled = enabled;
+            /*SofaPMFSM.GetState("Advance day").Actions[0].Enabled = enabled;*/
             SofaPMFSM.GetState("Advance day").Actions[1].Enabled = enabled;
-        }
-
-        /// <summary>
-        /// Stops, sets the start state for, and starts the sofa fsm in order to run the actions for a given state.
-        /// </summary>
-        /// <param name="state">The name of the state to run.</param>
-        private void ExecuteFSMState(string state)
-        {
-            SofaFSM.Stop();
-            SofaFSM.StartState = state;
-            SofaFSM.Start();
         }
 
         /// <summary>
@@ -651,22 +786,33 @@ namespace Menthus15Mods.Just_Wait
         /// <returns>True if the day should advance and false otherwise.</returns>
         private bool MimicCheckTimeOfDay()
         {
-            ExecuteFSMState("Check time of day");
+            ExecuteFSMState(SofaFSM, "Check time of day");
 
             if (SofaTimeOfDay.Value >= 24)
             {
-                ExecuteFSMState("Advance day");
+                ExecuteFSMState(SofaFSM, "Advance day");
 
                 if (GlobalDay.Value > 7)
                     GlobalDay.Value = 1;
             }
             else
             {
-                ExecuteFSMState("Wake up");
+                ExecuteFSMState(SofaFSM, "Wake up");
                 return false;
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Stops, sets the start state for, and starts the sofa fsm in order to run the actions for a given state.
+        /// </summary>
+        /// <param name="state">The name of the state to run.</param>
+        private void ExecuteFSMState(Fsm fsm, string state)
+        {
+            fsm.Stop();
+            fsm.StartState = state;
+            fsm.Start();
         }
 
         /// <summary>
